@@ -1,1 +1,296 @@
+-- Dojo Belt UI + Fragments + Dragon Materials
 
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LP = Players.LocalPlayer
+local CommF_ = ReplicatedStorage:WaitForChild("Remotes"):FindFirstChild("CommF_")
+
+---------------------------------------------------------------------
+-- BELT DATA
+---------------------------------------------------------------------
+
+local PRIORITY = {
+    White = 1, Yellow = 2, Orange = 3, Green = 4,
+    Blue  = 5, Purple = 6, Red    = 7, Black  = 8,
+}
+
+local ORDER = { "White","Yellow","Orange","Green","Blue","Purple","Red","Black" }
+local TOTAL_BELTS = #ORDER
+
+local COLORS = {
+    White  = Color3.fromRGB(255,255,255),
+    Yellow = Color3.fromRGB(255,230,0),
+    Orange = Color3.fromRGB(255,140,0),
+    Green  = Color3.fromRGB(0,255,0),
+    Blue   = Color3.fromRGB(0,170,255),
+    Purple = Color3.fromRGB(170,0,255),
+    Red    = Color3.fromRGB(255,0,0),
+    Black  = Color3.fromRGB(0,0,0),
+}
+
+local CANON = {
+    white="White", yellow="Yellow", orange="Orange", green="Green",
+    blue="Blue", purple="Purple", red="Red", black="Black",
+}
+
+local function colorToRich(c)
+    return string.format("rgb(%d,%d,%d)", c.R*255, c.G*255, c.B*255)
+end
+
+local function titleCase(s)
+    s = string.lower(s)
+    return CANON[s] or (string.sub(s,1,1):upper() .. string.sub(s,2))
+end
+
+---------------------------------------------------------------------
+-- INVENTORY HELPERS
+---------------------------------------------------------------------
+
+local function getInventory()
+    if not CommF_ then return nil end
+    local methods = {"getInventory","GetInventory","getInventory2","GetItems"}
+
+    for _, m in ipairs(methods) do
+        local ok, inv = pcall(function()
+            return CommF_:InvokeServer(m)
+        end)
+        if ok and type(inv) == "table" then
+            return inv
+        end
+    end
+end
+
+---------------------------------------------------------------------
+-- BELT PARSING
+---------------------------------------------------------------------
+
+local function parseVariant(name)
+    name = tostring(name or "")
+
+    -- [Color] / (Color)
+    local v = string.match(name, "%[(.-)%]") or string.match(name, "%((.-)%)")
+
+    -- "Dojo Belt - Color" / "Dojo Belt Color"
+    if not v then
+        local tail = string.gsub(name, "dojo%s*belt", "", 1)
+        tail = string.gsub(tail, "%p", " ")
+        tail = string.gsub(tail, "%s+", " ")
+        local last = string.match(tail, "(%w+)$")
+        if last and CANON[string.lower(last)] then
+            v = last
+        end
+    end
+
+    if not v then return nil end
+    return titleCase(v)
+end
+
+local function getHighestBelt()
+    local inv = getInventory()
+    if not inv then return nil end
+
+    local best, bestScore = nil, -1
+    for _, item in ipairs(inv) do
+        local name = tostring(item.Name or item.name or "")
+        if string.find(string.lower(name), "dojo belt") then
+            local var = parseVariant(name)
+            local p = var and PRIORITY[var]
+            if p and p > bestScore then
+                best = var
+                bestScore = p
+            end
+        end
+    end
+    return best
+end
+
+local function getNextVariant(variant)
+    local idx = PRIORITY[variant]
+    if not idx then return nil end
+    return ORDER[idx + 1]
+end
+
+---------------------------------------------------------------------
+-- FRAGMENTS
+---------------------------------------------------------------------
+
+local function getFragments()
+    local data = LP:FindFirstChild("Data")
+    if not data then return 0 end
+
+    local frag = data:FindFirstChild("Fragments")
+              or data:FindFirstChild("Fragment")
+              or data:FindFirstChild("Frags")
+
+    return (frag and frag.Value) or 0
+end
+
+local function fmt(n)
+    local s = tostring(n)
+    while true do
+        local new, k = string.gsub(s, "^(-?%d+)(%d%d%d)", "%1,%2")
+        s = new
+        if k == 0 then break end
+    end
+    return s
+end
+
+---------------------------------------------------------------------
+-- DRAGON MATERIAL CHECKER
+---------------------------------------------------------------------
+
+local function countItem(exactName)
+    local inv = getInventory()
+    if not inv then return 0 end
+
+    local total = 0
+    for _, item in ipairs(inv) do
+        local name = tostring(item.Name or item.name or "")
+        if name == exactName then
+            local qty = item.Count or item.count or item.Amount or item.amount or 1
+            if type(qty) ~= "number" then qty = 1 end
+            total = total + qty
+        end
+    end
+    return total
+end
+
+-- GLOBAL function để xài ở script khác
+function getDragonMats()
+    return {
+        DragonScale   = countItem("Dragon Scale"),
+        BlazeEmber    = countItem("Blaze Ember"),
+        DinosaurBones = countItem("Dinosaur Bones"), -- ĐÃ FIX tên có s
+        DragonEgg     = countItem("Dragon Egg"),
+    }
+end
+
+---------------------------------------------------------------------
+-- UI SETUP
+---------------------------------------------------------------------
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "DojoTopUI"
+
+pcall(function()
+    if syn and syn.protect_gui then
+        syn.protect_gui(gui)
+    end
+end)
+
+gui.Parent = game.CoreGui
+
+-- Line 1: Belt
+local topLabel = Instance.new("TextLabel", gui)
+topLabel.AnchorPoint = Vector2.new(0.5,0)
+topLabel.Position = UDim2.new(0.5,0,0.135,0)
+topLabel.Size = UDim2.new(0,600,0,45)
+topLabel.BackgroundTransparency = 1
+topLabel.Font = Enum.Font.GothamBlack
+topLabel.TextScaled = true
+topLabel.RichText = true
+topLabel.TextColor3 = Color3.fromRGB(255,255,255)
+
+local strokeTop = Instance.new("UIStroke", topLabel)
+strokeTop.Thickness = 3
+strokeTop.Color = Color3.fromRGB(0,0,0)
+
+-- Line 2: Fragments
+local fragLabel = Instance.new("TextLabel", gui)
+fragLabel.AnchorPoint = Vector2.new(0.5,0)
+fragLabel.Position = UDim2.new(0.5,0,0.215,0) -- xuống dưới xíu
+fragLabel.Size = UDim2.new(0,600,0,30)
+fragLabel.BackgroundTransparency = 1
+fragLabel.Font = Enum.Font.GothamBlack
+fragLabel.TextScaled = true
+fragLabel.RichText = true
+fragLabel.TextColor3 = Color3.fromRGB(255,0,255)
+
+local stroke2 = Instance.new("UIStroke", fragLabel)
+stroke2.Thickness = 3
+stroke2.Color = Color3.fromRGB(0,0,0)
+
+-- Line 3: Dragon Mats
+local matsLabel = Instance.new("TextLabel", gui)
+matsLabel.AnchorPoint = Vector2.new(0.5,0)
+matsLabel.Position = UDim2.new(0.5,0,0.26,0)
+matsLabel.Size = UDim2.new(0,600,0,26)
+matsLabel.BackgroundTransparency = 1
+matsLabel.Font = Enum.Font.GothamBlack
+matsLabel.TextScaled = true
+matsLabel.RichText = true
+matsLabel.TextColor3 = Color3.fromRGB(255,255,255)
+
+local stroke3 = Instance.new("UIStroke", matsLabel)
+stroke3.Thickness = 3
+stroke3.Color = Color3.fromRGB(0,0,0)
+
+---------------------------------------------------------------------
+-- UPDATE UI
+---------------------------------------------------------------------
+
+local function updateUI()
+    -- Belt
+    local curr = getHighestBelt()
+    if curr then
+        local idx = PRIORITY[curr] or 0
+        local nextVar = getNextVariant(curr)
+
+        local cColor
+        if curr == "Black" then
+            cColor = "rgb(220,0,0)" -- Black hiển thị đỏ đậm
+        else
+            cColor = colorToRich(COLORS[curr])
+        end
+
+        if nextVar then
+            local nColor = colorToRich(COLORS[nextVar])
+            topLabel.Text = string.format(
+                'Current: <font color="%s">%s</font> (%d/%d) | Next: <font color="%s">%s</font>',
+                cColor, curr, idx, TOTAL_BELTS, nColor, nextVar
+            )
+        else
+            topLabel.Text = string.format(
+                'Current: <font color="%s">%s</font> (%d/%d) | <font color="rgb(255,0,0)">MAX</font>',
+                cColor, curr, idx, TOTAL_BELTS
+            )
+        end
+    else
+        topLabel.Text = 'Current: None (0/8) | Next: White'
+    end
+
+    -- Fragments
+    fragLabel.Text = "Fragments: " .. fmt(getFragments())
+
+    -- Dragon Mats
+    local mats = getDragonMats()
+    matsLabel.Text = string.format(
+        'Scale: <font color="rgb(170,0,255)">%d</font>  |  Ember: <font color="rgb(255,140,0)">%d</font>  |  Bones: <font color="rgb(0,255,0)">%d</font>  |  Egg: <font color="rgb(0,170,255)">%d</font>',
+        mats.DragonScale, mats.BlazeEmber, mats.DinosaurBones, mats.DragonEgg
+    )
+end
+
+---------------------------------------------------------------------
+-- HOOK / LOOP
+---------------------------------------------------------------------
+
+local function hookCharacter(char)
+    char.ChildAdded:Connect(function() task.defer(updateUI) end)
+    char.ChildRemoved:Connect(function() task.defer(updateUI) end)
+end
+
+if LP.Character then
+    hookCharacter(LP.Character)
+end
+
+LP.CharacterAdded:Connect(function(char)
+    hookCharacter(char)
+    task.defer(updateUI)
+end)
+
+task.spawn(function()
+    while gui.Parent do
+        pcall(updateUI)
+        task.wait(5)
+    end
+end)
