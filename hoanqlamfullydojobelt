@@ -1,9 +1,5 @@
---═══════════════════════════════════════════
--- Dojo Belt UI + Fragments + Dragon Mats +
--- Rainbow Haki (override ON) + Race +
--- Status line + Ping/FPS (màu động) +
--- FPS BOOST "POTATO MODE"
---═══════════════════════════════════════════
+-- Dojo Belt UI + Fragments + Dragon Mats + Rainbow Haki + Race
+-- FPS Boost + Ping/FPS + UI elements
 
 --------------------------------------------------
 -- CONFIG OVERRIDE RAINBOW
