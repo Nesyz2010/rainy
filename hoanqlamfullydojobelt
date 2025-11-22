@@ -1,18 +1,149 @@
 --═══════════════════════════════════════════
 -- Dojo Belt UI + Fragments + Dragon Mats +
--- Rainbow Haki + Race + Status Line
+-- Rainbow Haki (override ON) + Race +
+-- Status line + Ping/FPS (màu động) +
+-- FPS BOOST "POTATO MODE"
 --═══════════════════════════════════════════
 
 --------------------------------------------------
--- CONFIG OVERRIDE RAINBOW (ép luôn có Rainbow)
+-- CONFIG OVERRIDE RAINBOW
 --------------------------------------------------
-getgenv().RainbowOwned = true
-getgenv().RainbowName  = "Rainbow Saviour"
+getgenv().RainbowOwned = true              -- ép luôn CÓ Rainbow Haki
+getgenv().RainbowName  = "Rainbow Saviour" -- tên hiển thị
 
-local Players = game:GetService("Players")
+--------------------------------------------------
+-- SERVICES
+--------------------------------------------------
+local Players           = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local LP = Players.LocalPlayer
-local CommF_ = ReplicatedStorage:WaitForChild("Remotes"):FindFirstChild("CommF_")
+local RunService        = game:GetService("RunService")
+local Stats             = game:GetService("Stats")
+local Lighting          = game:GetService("Lighting")
+local Terrain           = workspace:FindFirstChildOfClass("Terrain")
+local LP                = Players.LocalPlayer
+local CommF_            = ReplicatedStorage:WaitForChild("Remotes"):FindFirstChild("CommF_")
+
+--------------------------------------------------
+-- FPS BOOST (MAX TIẾT KIỆM ĐỒ HỌA)
+--------------------------------------------------
+local function fpsBoost()
+    -- Hạ quality thấp nhất
+    pcall(function()
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+    end)
+
+    -- Lighting siêu đơn giản
+    pcall(function()
+        Lighting.GlobalShadows = false
+        Lighting.FogEnd = 9e9
+        Lighting.Brightness = 1
+        Lighting.ClockTime = 14
+        Lighting.EnvironmentSpecularScale = 0
+        Lighting.EnvironmentDiffuseScale  = 0
+        Lighting.Ambient = Color3.new(0.5,0.5,0.5)
+        -- Technology đơn giản (nếu được)
+        if Lighting.Technology ~= Enum.Technology.Compatibility then
+            Lighting.Technology = Enum.Technology.Compatibility
+        end
+    end)
+
+    -- Tắt post-processing effect
+    pcall(function()
+        for _, v in ipairs(Lighting:GetDescendants()) do
+            if v:IsA("BlurEffect")
+            or v:IsA("SunRaysEffect")
+            or v:IsA("ColorCorrectionEffect")
+            or v:IsA("BloomEffect")
+            or v:IsA("DepthOfFieldEffect") then
+                v.Enabled = false
+            end
+        end
+    end)
+
+    -- Terrain siêu nhẹ
+    pcall(function()
+        if Terrain then
+            Terrain.WaterWaveSize   = 0
+            Terrain.WaterWaveSpeed  = 0
+            Terrain.WaterReflectance= 0
+            Terrain.WaterTransparency = 0
+        end
+    end)
+
+    -- Xử lý workspace: loại bỏ tối đa hiệu ứng, shadow, decal
+    pcall(function()
+        for _, v in ipairs(workspace:GetDescendants()) do
+            -- Bỏ qua nhân vật người chơi (cho đỡ lỗi model)
+            if LP.Character and v:IsDescendantOf(LP.Character) then
+                continue
+            end
+
+            if v:IsA("ParticleEmitter")
+            or v:IsA("Trail")
+            or v:IsA("Beam")
+            or v:IsA("Fire")
+            or v:IsA("Smoke")
+            or v:IsA("Sparkles") then
+                v.Enabled = false
+
+            elseif v:IsA("Explosion") then
+                v:Destroy()
+
+            elseif v:IsA("MeshPart")
+            or v:IsA("Part")
+            or v:IsA("UnionOperation")
+            or v:IsA("TrussPart")
+            or v:IsA("CornerWedgePart")
+            or v:IsA("WedgePart") then
+                v.Material = Enum.Material.SmoothPlastic
+                v.Reflectance = 0
+                v.CastShadow = false
+
+            elseif v:IsA("Decal") or v:IsA("Texture") then
+                -- Ẩn hầu hết decal/texture (trừ GUI 3D quan trọng, nếu muốn giữ thì comment dòng dưới)
+                v.Transparency = 1
+            end
+        end
+    end)
+
+    -- Xoá folder Effects nếu game có
+    pcall(function()
+        local effNames = {"Effects","Effect","VFX","FX"}
+        for _, n in ipairs(effNames) do
+            local f = workspace:FindFirstChild(n)
+            if f then f:Destroy() end
+        end
+    end)
+
+    -- Tắt Face (mặt) & phụ kiện shine (cho nhẹ thêm tí)
+    pcall(function()
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr.Character then
+                for _, d in ipairs(plr.Character:GetDescendants()) do
+                    if d:IsA("Accessory") then
+                        local h = d:FindFirstChildWhichIsA("MeshPart")
+                                or d:FindFirstChildWhichIsA("Part")
+                        if h then
+                            h.CastShadow = false
+                            h.Material = Enum.Material.SmoothPlastic
+                        end
+                    elseif d:IsA("Decal") and d.Name == "face" then
+                        d.Transparency = 1
+                    end
+                end
+            end
+        end
+    end)
+
+    -- Giới hạn FPS (sửa số nếu muốn cao hơn)
+    pcall(function()
+        if setfpscap then
+            setfpscap(60)
+        end
+    end)
+end
+
+fpsBoost()
 
 --------------------------------------------------
 -- BELT DATA
@@ -51,7 +182,7 @@ local function titleCase(s)
 end
 
 --------------------------------------------------
--- GET INVENTORY
+-- INVENTORY HELPER
 --------------------------------------------------
 local function getInventory()
     if not CommF_ then return nil end
@@ -61,7 +192,9 @@ local function getInventory()
         local ok, inv = pcall(function()
             return CommF_:InvokeServer(m)
         end)
-        if ok and type(inv) == "table" then return inv end
+        if ok and type(inv) == "table" then
+            return inv
+        end
     end
 end
 
@@ -70,7 +203,7 @@ end
 --------------------------------------------------
 local function parseVariant(name)
     name = tostring(name or "")
-    local v = string.match(name, "%[(.-)%]") or string.match(name, "%((.-)%)")
+    local v = name:match("%[(.-)%]") or name:match("%((.-)%)")
 
     if not v then
         local tail = name:gsub("dojo%s*belt","",1):gsub("%p"," "):gsub("%s+"," ")
@@ -157,7 +290,7 @@ function getDragonMats()
 end
 
 --------------------------------------------------
--- RACE CHECK (V1 – V4)
+-- RACE CHECK
 --------------------------------------------------
 local KNOWN_RACES = {
     "Human","Shark","Mink","Angel","Ghoul","Cyborg",
@@ -169,15 +302,15 @@ local function getRaceInfo()
     if not data then return "None","V0" end
 
     local raceName = "None"
-
     local raceVal = data:FindFirstChild("Race")
     if raceVal then
-        raceName = raceVal.Value
+        raceName = tostring(raceVal.Value)
     else
         for _, v in ipairs(data:GetDescendants()) do
             if v:IsA("StringValue") then
+                local val = v.Value:lower()
                 for _, r in ipairs(KNOWN_RACES) do
-                    if v.Value:lower():find(r:lower()) then
+                    if val:find(r:lower()) then
                         raceName = v.Value
                     end
                 end
@@ -196,13 +329,35 @@ local function getRaceInfo()
 end
 
 --------------------------------------------------
--- RAINBOW HAKI CHECK
+-- RAINBOW HAKI
 --------------------------------------------------
 local function hasRainbowHaki()
     if getgenv().RainbowOwned ~= nil then
-        return getgenv().RainbowOwned, getgenv().RainbowName
+        return getgenv().RainbowOwned, getgenv().RainbowName or "Rainbow Saviour"
     end
     return false, "NOT OWNED"
+end
+
+--------------------------------------------------
+-- PING + FPS
+--------------------------------------------------
+local currentFPS = 0
+
+RunService.RenderStepped:Connect(function(dt)
+    local fps = math.floor(1 / math.max(dt, 1/1000))
+    if fps > 0 and fps < 1000 then
+        currentFPS = fps
+    end
+end)
+
+local function getPing()
+    local ok, ping = pcall(function()
+        local net = Stats.Network
+        local item = net.ServerStatsItem["Data Ping"]
+        return math.floor(item:GetValue())
+    end)
+    if ok then return ping end
+    return 0
 end
 
 --------------------------------------------------
@@ -230,23 +385,49 @@ local function newLabel(y)
     return L
 end
 
-local topLabel    = newLabel(0.135)
-local fragLabel   = newLabel(0.215)
-local matsLabel   = newLabel(0.26)
-local hakiLabel   = newLabel(0.305)
-local raceLabel   = newLabel(0.345)
-local statusLabel = newLabel(0.385)  -- Cách race ~10px
+-- Dòng Ping/FPS (trên Belt)
+local sysLabel    = newLabel(0.08)
+-- Belt
+local topLabel    = newLabel(0.12)
+-- Fragments (hồng tím)
+local fragLabel   = newLabel(0.17)
+-- Dragon Mats
+local matsLabel   = newLabel(0.21)
+-- Rainbow Haki
+local hakiLabel   = newLabel(0.25)
+-- Race
+local raceLabel   = newLabel(0.29)
+-- Status line
+local statusLabel = newLabel(0.33)
+
+fragLabel.TextColor3 = Color3.fromRGB(255,0,255)
 
 --------------------------------------------------
 -- UPDATE UI
 --------------------------------------------------
 local function updateUI()
+    -- SYS: Ping / FPS với màu động
+    local ping = getPing()
+    local pingColor
+    if ping <= 80 then
+        pingColor = "rgb(0,255,0)"      -- xanh lá
+    elseif ping <= 200 then
+        pingColor = "rgb(255,255,0)"    -- vàng
+    else
+        pingColor = "rgb(255,0,0)"      -- đỏ
+    end
+
+    sysLabel.Text = string.format(
+        'Ping: <font color="%s">%d ms</font> | FPS: <font color="rgb(255,255,255)">%d</font>',
+        pingColor, ping, currentFPS
+    )
+
     -- BELT
     local curr = getHighestBelt()
     if curr then
-        local idx = PRIORITY[curr]
+        local idx  = PRIORITY[curr]
         local nextV = getNextVariant(curr)
-        local cColor = (curr=="Black") and "rgb(220,0,0)" or colorToRich(COLORS[curr])
+        local cColor = (curr == "Black") and "rgb(220,0,0)" or colorToRich(COLORS[curr])
 
         if nextV then
             topLabel.Text = string.format(
@@ -260,7 +441,7 @@ local function updateUI()
             )
         end
     else
-        topLabel.Text = "Current: None (0/8) | Next: White"
+        topLabel.Text = 'Current: None (0/8) | Next: White'
     end
 
     -- FRAGMENTS
@@ -276,9 +457,12 @@ local function updateUI()
     -- HAKI RAINBOW
     local own, aura = hasRainbowHaki()
     if own then
-        hakiLabel.Text = string.format('<font color="rgb(0,255,0)">Rainbow Haki: %s ✓</font>', aura)
+        hakiLabel.Text = string.format(
+            '<font color="rgb(0,255,0)">Rainbow Haki: %s ✓</font>',
+            aura
+        )
     else
-        hakiLabel.Text = '<font color="rgb(255,0,0)">Rainbow Haki: NOT OWNED</font>'
+        hakiLabel.Text = '<font color="rgb(255,80,80)">Rainbow Haki: NOT OWNED</font>'
     end
 
     -- RACE
@@ -288,12 +472,12 @@ local function updateUI()
         raceName, tier
     )
 
-    -- STATUS LINE
+    -- STATUS
     statusLabel.Text = '<font color="rgb(255,255,255)">Fully Draco is running… | HoanqLam</font>'
 end
 
 --------------------------------------------------
--- AUTO UPDATE
+-- AUTO UPDATE LOOP
 --------------------------------------------------
 task.spawn(function()
     while gui.Parent do
