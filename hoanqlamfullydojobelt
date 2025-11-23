@@ -19,9 +19,91 @@ local Terrain           = workspace:FindFirstChildOfClass("Terrain")
 local LP                = Players.LocalPlayer
 local CommF_            = ReplicatedStorage:WaitForChild("Remotes"):FindFirstChild("CommF_")
 
+-- character ref để FPS boost không xoá người
+local Character = LP.Character or LP.CharacterAdded:Wait()
+LP.CharacterAdded:Connect(function(c)
+    Character = c
+end)
+
 --------------------------------------------------
--- FPS BOOST (MAX TIẾT KIỆM ĐỒ HỌA)
+-- FPS BOOST (MAX TIẾT KIỆM ĐỒ HỌA + SUPER EXTREME CLEAN)
 --------------------------------------------------
+
+-- NPC / Player check
+local function isCharacterOrNPC(obj)
+    local mdl = obj:FindFirstAncestorOfClass("Model")
+    if not mdl then return false end
+    if mdl == Character then return true end
+    if mdl:FindFirstChildOfClass("Humanoid") then
+        return true
+    end
+    return false
+end
+
+-- Hàm xoá cực mạnh, giữ NPC + player, giữ vài sàn siêu to
+local function superNuke(obj)
+    if isCharacterOrNPC(obj) then return end
+
+    if obj:IsA("Decal")
+    or obj:IsA("Texture")
+    or obj:IsA("ParticleEmitter")
+    or obj:IsA("Smoke")
+    or obj:IsA("Fire")
+    or obj:IsA("Sparkles")
+    or obj:IsA("Trail")
+    or obj:IsA("Beam")
+    or obj:IsA("Highlight")
+    or obj:IsA("Explosion") then
+        obj:Destroy()
+        return
+    end
+
+    if obj:IsA("SpecialMesh") then
+        obj:Destroy()
+        return
+    end
+
+    if obj:IsA("BasePart") then
+        local size    = obj.Size
+        local maxAxis = math.max(size.X, size.Y, size.Z)
+        local minAxis = math.min(size.X, size.Y, size.Z)
+
+        -- Giữ lại sàn / tường siêu to & mỏng để khỏi rơi map
+        local isHugeFloor = (maxAxis >= 120 and minAxis <= 8 and obj.Anchored)
+
+        if not isHugeFloor then
+            if maxAxis <= 300 then
+                obj:Destroy()
+                return
+            end
+        end
+
+        -- Những part còn lại (rất to) thì đơn giản hoá hết
+        obj.Material = Enum.Material.SmoothPlastic
+        obj.Reflectance = 0
+        obj.CastShadow = false
+        obj.BackSurface   = Enum.SurfaceType.Smooth
+        obj.BottomSurface = Enum.SurfaceType.Smooth
+        obj.TopSurface    = Enum.SurfaceType.Smooth
+        obj.FrontSurface  = Enum.SurfaceType.Smooth
+        obj.LeftSurface   = Enum.SurfaceType.Smooth
+        obj.RightSurface  = Enum.SurfaceType.Smooth
+
+        if obj:IsA("MeshPart") then
+            obj.MeshId = ""
+            obj.TextureID = ""
+        end
+    end
+end
+
+local function fullClean()
+    for _, v in ipairs(workspace:GetDescendants()) do
+        pcall(function()
+            superNuke(v)
+        end)
+    end
+end
+
 local function fpsBoost()
     -- Hạ quality thấp nhất
     pcall(function()
@@ -37,7 +119,6 @@ local function fpsBoost()
         Lighting.EnvironmentSpecularScale = 0
         Lighting.EnvironmentDiffuseScale  = 0
         Lighting.Ambient = Color3.new(0.5,0.5,0.5)
-        -- Technology đơn giản (nếu được)
         if Lighting.Technology ~= Enum.Technology.Compatibility then
             Lighting.Technology = Enum.Technology.Compatibility
         end
@@ -66,42 +147,6 @@ local function fpsBoost()
         end
     end)
 
-    -- Xử lý workspace: loại bỏ tối đa hiệu ứng, shadow, decal
-    pcall(function()
-        for _, v in ipairs(workspace:GetDescendants()) do
-            -- Bỏ qua nhân vật người chơi (cho đỡ lỗi model)
-            if LP.Character and v:IsDescendantOf(LP.Character) then
-                continue
-            end
-
-            if v:IsA("ParticleEmitter")
-            or v:IsA("Trail")
-            or v:IsA("Beam")
-            or v:IsA("Fire")
-            or v:IsA("Smoke")
-            or v:IsA("Sparkles") then
-                v.Enabled = false
-
-            elseif v:IsA("Explosion") then
-                v:Destroy()
-
-            elseif v:IsA("MeshPart")
-            or v:IsA("Part")
-            or v:IsA("UnionOperation")
-            or v:IsA("TrussPart")
-            or v:IsA("CornerWedgePart")
-            or v:IsA("WedgePart") then
-                v.Material = Enum.Material.SmoothPlastic
-                v.Reflectance = 0
-                v.CastShadow = false
-
-            elseif v:IsA("Decal") or v:IsA("Texture") then
-                -- Ẩn hầu hết decal/texture (trừ GUI 3D quan trọng, nếu muốn giữ thì comment dòng dưới)
-                v.Transparency = 1
-            end
-        end
-    end)
-
     -- Xoá folder Effects nếu game có
     pcall(function()
         local effNames = {"Effects","Effect","VFX","FX"}
@@ -111,7 +156,7 @@ local function fpsBoost()
         end
     end)
 
-    -- Tắt Face (mặt) & phụ kiện shine (cho nhẹ thêm tí)
+    -- Tắt Face & phụ kiện shine (nhẹ thêm)
     pcall(function()
         for _, plr in ipairs(Players:GetPlayers()) do
             if plr.Character then
@@ -135,6 +180,24 @@ local function fpsBoost()
     pcall(function()
         if setfpscap then
             setfpscap(60)
+        end
+    end)
+
+    -- Lần dọn đầu tiên
+    fullClean()
+
+    -- Dọn cho object spawn mới
+    workspace.DescendantAdded:Connect(function(obj)
+        task.defer(function()
+            pcall(superNuke, obj)
+        end)
+    end)
+
+    -- Lặp lại 5s dọn 1 lần
+    task.spawn(function()
+        while true do
+            fullClean()
+            task.wait(5)
         end
     end)
 end
@@ -406,11 +469,11 @@ local function updateUI()
     local ping = getPing()
     local pingColor
     if ping <= 80 then
-        pingColor = "rgb(0,255,0)"      -- xanh lá
+        pingColor = "rgb(0,255,0)"
     elseif ping <= 200 then
-        pingColor = "rgb(255,255,0)"    -- vàng
+        pingColor = "rgb(255,255,0)"
     else
-        pingColor = "rgb(255,0,0)"      -- đỏ
+        pingColor = "rgb(255,0,0)"
     end
 
     sysLabel.Text = string.format(
