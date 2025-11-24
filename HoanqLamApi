@@ -1,5 +1,5 @@
 --------------------------------------------------
--- DRACO UI + FPS BOOST (giữ nguyên)
+-- DRACO UI + FPS BOOST SAFE MODE
 --------------------------------------------------
 getgenv().RainbowOwned = true              -- ép luôn CÓ Rainbow Haki
 getgenv().RainbowName  = "Rainbow Saviour" -- tên hiển thị
@@ -28,12 +28,23 @@ local function isCharacterOrNPC(obj)
     return false
 end
 
+-- FPS BOOST SAFE MODE: xoá nhẹ, không xoá NPC, không xoá cây
 local function superNuke(obj)
     if isCharacterOrNPC(obj) then return end
 
-    if obj:IsA("Decal")
-    or obj:IsA("Texture")
-    or obj:IsA("ParticleEmitter")
+    local name = ""
+    pcall(function()
+        name = string.lower(obj.Name or "")
+    end)
+
+    -- không đụng vào cây / lá / bụi cỏ
+    if name:find("tree") or name:find("leaf") or name:find("plant")
+    or name:find("bush") or name:find("grass") then
+        return
+    end
+
+    -- xoá các hiệu ứng nặng
+    if obj:IsA("ParticleEmitter")
     or obj:IsA("Smoke")
     or obj:IsA("Fire")
     or obj:IsA("Sparkles")
@@ -45,37 +56,27 @@ local function superNuke(obj)
         return
     end
 
-    if obj:IsA("SpecialMesh") then
-        obj:Destroy()
+    -- ẩn decal/texture cho nhẹ mà không phá map
+    if obj:IsA("Decal") or obj:IsA("Texture") then
+        obj.Transparency = 1
         return
     end
 
+    -- làm nhẹ part nhỏ (không xoá)
     if obj:IsA("BasePart") then
-        local size    = obj.Size
-        local maxAxis = math.max(size.X, size.Y, size.Z)
-        local minAxis = math.min(size.X, size.Y, size.Z)
-
-        local isHugeFloor = (maxAxis >= 120 and minAxis <= 8 and obj.Anchored)
-
-        if not isHugeFloor then
-            if maxAxis <= 300 then
-                obj:Destroy()
-                return
-            end
+        if obj.Size.Magnitude < 20 then
+            obj.Material = Enum.Material.SmoothPlastic
+            obj.Reflectance = 0
+            obj.CastShadow = false
+            obj.BackSurface   = Enum.SurfaceType.Smooth
+            obj.BottomSurface = Enum.SurfaceType.Smooth
+            obj.TopSurface    = Enum.SurfaceType.Smooth
+            obj.FrontSurface  = Enum.SurfaceType.Smooth
+            obj.LeftSurface   = Enum.SurfaceType.Smooth
+            obj.RightSurface  = Enum.SurfaceType.Smooth
         end
 
-        obj.Material = Enum.Material.SmoothPlastic
-        obj.Reflectance = 0
-        obj.CastShadow = false
-        obj.BackSurface   = Enum.SurfaceType.Smooth
-        obj.BottomSurface = Enum.SurfaceType.Smooth
-        obj.TopSurface    = Enum.SurfaceType.Smooth
-        obj.FrontSurface  = Enum.SurfaceType.Smooth
-        obj.LeftSurface   = Enum.SurfaceType.Smooth
-        obj.RightSurface  = Enum.SurfaceType.Smooth
-
         if obj:IsA("MeshPart") then
-            obj.MeshId = ""
             obj.TextureID = ""
         end
     end
@@ -90,23 +91,20 @@ local function fullClean()
 end
 
 local function fpsBoost()
+    -- hạ chất lượng vừa phải
     pcall(function()
-        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level02
     end)
 
+    -- chỉnh Lighting cho nhẹ
     pcall(function()
         Lighting.GlobalShadows = false
-        Lighting.FogEnd = 9e9
-        Lighting.Brightness = 1
-        Lighting.ClockTime = 14
+        Lighting.FogEnd = 999999
         Lighting.EnvironmentSpecularScale = 0
         Lighting.EnvironmentDiffuseScale  = 0
-        Lighting.Ambient = Color3.new(0.5,0.5,0.5)
-        if Lighting.Technology ~= Enum.Technology.Compatibility then
-            Lighting.Technology = Enum.Technology.Compatibility
-        end
     end)
 
+    -- tắt hiệu ứng hậu kỳ
     pcall(function()
         for _, v in ipairs(Lighting:GetDescendants()) do
             if v:IsA("BlurEffect")
@@ -119,62 +117,27 @@ local function fpsBoost()
         end
     end)
 
+    -- làm nhẹ nước, terrain
     pcall(function()
         if Terrain then
             Terrain.WaterWaveSize   = 0
             Terrain.WaterWaveSpeed  = 0
             Terrain.WaterReflectance= 0
-            Terrain.WaterTransparency = 0
         end
     end)
 
-    pcall(function()
-        local effNames = {"Effects","Effect","VFX","FX"}
-        for _, n in ipairs(effNames) do
-            local f = workspace:FindFirstChild(n)
-            if f then f:Destroy() end
-        end
-    end)
-
-    pcall(function()
-        for _, plr in ipairs(Players:GetPlayers()) do
-            if plr.Character then
-                for _, d in ipairs(plr.Character:GetDescendants()) do
-                    if d:IsA("Accessory") then
-                        local h = d:FindFirstChildWhichIsA("MeshPart")
-                                or d:FindFirstChildWhichIsA("Part")
-                        if h then
-                            h.CastShadow = false
-                            h.Material = Enum.Material.SmoothPlastic
-                        end
-                    elseif d:IsA("Decal") and d.Name == "face" then
-                        d.Transparency = 1
-                    end
-                end
-            end
-        end
-    end)
-
-    pcall(function()
-        if setfpscap then
-            setfpscap(60)
-        end
-    end)
-
+    -- dọn 1 lần lúc đầu
     fullClean()
 
+    -- auto xử lý object mới sinh ra
     workspace.DescendantAdded:Connect(function(obj)
-        task.defer(function()
-            pcall(superNuke, obj)
+        task.wait(0.1)
+        pcall(function()
+            superNuke(obj)
         end)
     end)
 
-    task.spawn(function()
-        while true do
-            fullClean()
-            task.wait(5)
-        end
-    end)
+    print("FPS Boost Safe Mode: bật (không xoá NPC, không xoá cây, xoá vừa phải)")
 end
 
 fpsBoost()
