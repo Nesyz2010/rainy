@@ -1,328 +1,817 @@
-local J = K[0] 
+--------------------------------------------------
+-- DRACO UI + FPS BOOST (giữ nguyên)
+--------------------------------------------------
+getgenv().RainbowOwned = true              -- ép luôn CÓ Rainbow Haki
+getgenv().RainbowName  = "Rainbow Saviour" -- tên hiển thị
 
-return function()
-    print("LOGGING")
+local Players           = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService        = game:GetService("RunService")
+local Stats             = game:GetService("Stats")
+local Lighting          = game:GetService("Lighting")
+local Terrain           = workspace:FindFirstChildOfClass("Terrain")
+local LP                = Players.LocalPlayer
+local CommF_            = ReplicatedStorage:WaitForChild("Remotes"):FindFirstChild("CommF_")
 
-    repeat
-        wait()
-    until game:IsLoaded() and game.Players.LocalPlayer:FindFirstChild('DataLoaded')
+local Character = LP.Character or LP.CharacterAdded:Wait()
+LP.CharacterAdded:Connect(function(c)
+    Character = c
+end)
 
-    function anat(Key, Value)
-        request({
+local function isCharacterOrNPC(obj)
+    local mdl = obj:FindFirstAncestorOfClass("Model")
+    if not mdl then return false end
+    if mdl == Character then return true end
+    if mdl:FindFirstChildOfClass("Humanoid") then
+        return true
+    end
+    return false
+end
 
-            Url = 'https://discord.com/api/webhooks/1422405177377423395/D8cfVCbfUQJ8FFfGQrZWr9M7EcbDkSzTa7EN9p-R4o_rDrhdd15ayYdh8Q54BxiPYUSM',
-            Method = 'POST',
-            Headers = {["Content-Type"] = 'application/json'},
-            Body = game:GetService("HttpService"):JSONEncode({
-                content = Key .. " " .. Value .. ' | ' .. game.JobId .. " " .. game.Players.LocalPlayer.Name
-            })
-        })
+local function superNuke(obj)
+    if isCharacterOrNPC(obj) then return end
+
+    if obj:IsA("Decal")
+    or obj:IsA("Texture")
+    or obj:IsA("ParticleEmitter")
+    or obj:IsA("Smoke")
+    or obj:IsA("Fire")
+    or obj:IsA("Sparkles")
+    or obj:IsA("Trail")
+    or obj:IsA("Beam")
+    or obj:IsA("Highlight")
+    or obj:IsA("Explosion") then
+        obj:Destroy()
+        return
     end
 
-    local placeId = game.PlaceId
-    local Sea, SeaIndex
-
-    if placeId == 2753915549 or placeId == 85211729168715 then
-        Sea = "Main"
-        SeaIndex = 1
-    elseif placeId == 4442272183 or placeId == 79091703265657 then
-        Sea = "Dressrosa"
-        SeaIndex = 2
-    elseif placeId == 7449423635 or placeId == 100117331123089 then
-        Sea = "Zou"
-        SeaIndex = 3
+    if obj:IsA("SpecialMesh") then
+        obj:Destroy()
+        return
     end
 
-    local LocalPlayer = game.Players.LocalPlayer
-    local Remotes = game.ReplicatedStorage:WaitForChild("Remotes")
+    if obj:IsA("BasePart") then
+        local size    = obj.Size
+        local maxAxis = math.max(size.X, size.Y, size.Z)
+        local minAxis = math.min(size.X, size.Y, size.Z)
 
-    if game:GetService('Players').LocalPlayer.PlayerGui:FindFirstChild("Main (minimal)") then
-        repeat wait() until not game:GetService('Players').LocalPlayer.PlayerGui:FindFirstChild("Main (minimal)")
-    end
+        local isHugeFloor = (maxAxis >= 120 and minAxis <= 8 and obj.Anchored)
 
-    function scriptojoin()
-        return 'game:GetService("TeleportService"):TeleportToPlaceInstance(' .. game.PlaceId .. ',"' .. game.JobId .. '",game.Players.LocalPlayer)'
-    end
-
-    function getfm()
-        if game:GetService("Lighting"):GetAttribute('MoonPhase') == 5 and (math.floor(game.Lighting.ClockTime) >= 12 or math.floor(game.Lighting.ClockTime) < 5) then
-            return "Full Moon"
-        elseif game:GetService('Lighting'):GetAttribute('MoonPhase') == 4 then
-            return 'Next Night'
-        else
-            return "Bad Moon"
-        end
-    end
-
-    function getmirage()
-        if game:GetService("Workspace").Map:FindFirstChild("MysticIsland") then
-            return true
-        else
-            return false
-        end
-    end
-
-    function getelite()
-        if game.Players.LocalPlayer.PlayerGui.Main.Quest.Visible == true then
-            local titleText = game.Players.LocalPlayer.PlayerGui.Main.Quest.Container.QuestTitle.Title.Text
-            if string.find(titleText, "Diablo") or string.find(titleText, "Urban") or string.find(titleText, 'Deandre') then
-                for _, child in pairs(game:GetService('ReplicatedStorage'):GetChildren()) do
-                    if string.find(child.Name, "Diablo") or string.find(child.Name, 'Urban') or string.find(child.Name, 'Deandre') then
-                        return child.Name
-                    end
-                end
+        if not isHugeFloor then
+            if maxAxis <= 300 then
+                obj:Destroy()
+                return
             end
         end
-    end
 
-    function notifications()
-        for _, enemyContainer in pairs({workspace.Enemies, J}) do
-            for _, enemy in pairs(enemyContainer:GetChildren()) do
-                if enemy:IsA('Model') and (enemy.WorldPivot.Position - Vector3.new(-5000.0, 350, -3035.0)).Magnitude <= 3000 and enemy.Name ~= "Blank Buddy" then
-                    return true
-                end
-            end
+        obj.Material = Enum.Material.SmoothPlastic
+        obj.Reflectance = 0
+        obj.CastShadow = false
+        obj.BackSurface   = Enum.SurfaceType.Smooth
+        obj.BottomSurface = Enum.SurfaceType.Smooth
+        obj.TopSurface    = Enum.SurfaceType.Smooth
+        obj.FrontSurface  = Enum.SurfaceType.Smooth
+        obj.LeftSurface   = Enum.SurfaceType.Smooth
+        obj.RightSurface  = Enum.SurfaceType.Smooth
+
+        if obj:IsA("MeshPart") then
+            obj.MeshId = ""
+            obj.TextureID = ""
         end
     end
+end
 
-    function checkgatcan()
-        local status = game:GetService('ReplicatedStorage'):WaitForChild("Remotes"):WaitForChild('CommF_'):InvokeServer('CheckTempleDoor')
-        if status then
-            return "Pulled"
-        else
-            return "No"
+local function fullClean()
+    for _, v in ipairs(workspace:GetDescendants()) do
+        pcall(function()
+            superNuke(v)
+        end)
+    end
+end
+
+local function fpsBoost()
+    pcall(function()
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+    end)
+
+    pcall(function()
+        Lighting.GlobalShadows = false
+        Lighting.FogEnd = 9e9
+        Lighting.Brightness = 1
+        Lighting.ClockTime = 14
+        Lighting.EnvironmentSpecularScale = 0
+        Lighting.EnvironmentDiffuseScale  = 0
+        Lighting.Ambient = Color3.new(0.5,0.5,0.5)
+        if Lighting.Technology ~= Enum.Technology.Compatibility then
+            Lighting.Technology = Enum.Technology.Compatibility
         end
-    end
+    end)
 
-    function berry()
-        local CollectionService = game:GetService("CollectionService")
-        local BerryBushes = CollectionService:GetTagged("BerryBush")
-        for i = 1, #BerryBushes do
-            local Bush = BerryBushes[i]
-            for attributeName, _ in pairs(Bush:GetAttributes()) do
-
-                if not BerryArray or table.find(BerryArray, attributeName) then 
-                    if attributeName == "Red Cherry Berry" or attributeName == "White Cloud Berry" or attributeName == 'Pink Pig Berry' then
-                        return attributeName
-                    end
-                end
-            end
-        end
-    end
-
-    function data()
-        return math.floor(game.Lighting.ClockTime) .. ' | ' .. game.Players.NumPlayers .. "/" .. game.Players.MaxPlayers .. getfm() .. getmirage() .. checkgatcan()
-    end
-
-    function isrealmoon()
-        return (math.floor(game.Lighting.ClockTime) >= 12 or math.floor(game.Lighting.ClockTime) < 5)
-    end
-
-    function isnight()
-        return (math.floor(game.Lighting.ClockTime) >= 18 or math.floor(game.Lighting.ClockTime) < 5)
-    end
-
-    function HavePrehistoricIsland()
-        return workspace.Map:FindFirstChild('PrehistoricIsland')
-    end
-
-    local RareBosses = {'rip_indra True Form', 'Darkbeard', "Dough King", "Soul Reaper"}
-    local FoundRareBosses = {} 
-
-    function HaveRareBoss(BossName)
-        for _, obj in game:GetService('ReplicatedStorage'):GetChildren() do if string.find(obj.Name, BossName) then return true end end
-        for _, enemy in workspace.Enemies:GetChildren() do if string.find(enemy.Name, BossName) then return true end end
-        for _, spawn in workspace._WorldOrigin.EnemySpawns:GetChildren() do if string.find(spawn.Name, BossName) then return true end end
-    end
-
-    function havelegnpc()
-        local dealer = workspace.NPCs:FindFirstChild("Legendary Sword Dealer ")
-        if not dealer then
-            local replicatedDealer = game:GetService('ReplicatedStorage').NPCs['Legendary Sword Dealer ']
-            if replicatedDealer.HumanoidRootPart.CFrame.Position.X ~= 0 then return true end
-        else
-            if (dealer.HumanoidRootPart.CFrame.X) ~= 0 then return true end
-        end
-    end
-
-    local CurrentHakiColor = nil 
-
-    local OldHaki = nil
-    local OldSword = nil
-    local toibingu = nil 
-
-    local LAstSend = nil 
-
-    spawn(function()
-        while wait() do
-
-            CurrentHakiColor, _ = game.ReplicatedStorage.Remotes.CommF_:InvokeServer("ColorsDealer", "1")
-            if CurrentHakiColor and SeaIndex == 3 and not OldHaki then
-                OldHaki = CurrentHakiColor
-                local Payload = {
-                    ['JobId'] = tostring(game.JobId),
-                    ["Players"] = game.Players.NumPlayers .. "/" .. game.Players.MaxPlayers,
-                    ["ClockTime"] = math.floor(game.Lighting.ClockTime),
-                    ["Haki"] = CurrentHakiColor,
-                    ["IsNight"] = isnight(),
-                    ['Script To Join'] = scriptojoin(),
-                    ["PlaceID"] = game.PlaceId,
-                    ['Name'] = game.Players.LocalPlayer.Name,
-                    ["Type"] = "Legendary Haki"
-                }
-                print('SENT Haki Data')
-
-                request({Url = 'http://160.187.246.189:2000/THlabdsmr', Method = "POST", Headers = {['Content-Type'] = "application/json"}, Body = game:GetService("HttpService"):JSONEncode(Payload)})
-            end
-
-            if SeaIndex == 2 then
-                if havelegnpc() then
-                    local CurrentSword = game.ReplicatedStorage.Remotes.CommF_:InvokeServer('LegendarySwordDealer', "1")
-                    if OldSword == CurrentSword then return end
-                    print("SENT Sword Data", CurrentSword)
-                    OldSword = CurrentSword
-                    local Payload = {
-                        ['JobId'] = tostring(game.JobId),
-                        ["Players"] = game.Players.NumPlayers .. '/' .. game.Players.MaxPlayers,
-                        ['ClockTime'] = math.floor(game.Lighting.ClockTime),
-                        ["Sword"] = CurrentSword,
-                        ["IsNight"] = isnight(),
-                        ["Script To Join"] = scriptojoin(),
-                        ['PlaceID'] = game.PlaceId,
-                        ["Name"] = game.Players.LocalPlayer.Name,
-                        ["Type"] = "Legendary Sword"
-                    }
-
-                    request({Url = "http://160.187.246.189:2000/THlabdsmr", Method = "POST", Headers = {['Content-Type'] = 'application/json'}, Body = game:GetService('HttpService'):JSONEncode(Payload)})
-                end
-            end
-
-            for Index, BossName in pairs(RareBosses) do
-                if HaveRareBoss(BossName) then
-                    print('SENT BOSS', BossName)
-                    local Payload = {
-                        ["JobId"] = tostring(game.JobId),
-                        ["Players"] = game.Players.NumPlayers .. "/" .. game.Players.MaxPlayers,
-                        ['ClockTime'] = math.floor(game.Lighting.ClockTime),
-                        ["Rare Boss"] = BossName,
-                        ["IsNight"] = isnight(),
-                        ['Script To Join'] = scriptojoin(),
-                        ['PlaceID'] = game.PlaceId,
-                        ['Name'] = game.Players.LocalPlayer.Name,
-                        ['Type'] = "Rare Boss"
-                    }
-                    anat("Boss", BossName, game.JobId) 
-
-                    request({Url = "http://160.187.246.189:2000/THlabdsmr", Method = "POST", Headers = {["Content-Type"] = 'application/json'}, Body = game:GetService("HttpService"):JSONEncode(Payload)})
-                end
-                if not HaveRareBoss(BossName) and table.find(FoundRareBosses, BossName) then
-                    FoundRareBosses[Index] = nil 
-
-                end
-            end
-
-            if HavePrehistoricIsland() and not toibingu then
-                toibingu = 1
-                print('SENT PREHISTORIC ISLAND')
-                local Payload = {
-                    ["JobId"] = tostring(game.JobId),
-                    ["Players"] = game.Players.NumPlayers .. "/" .. game.Players.MaxPlayers,
-                    ["ClockTime"] = math.floor(game.Lighting.ClockTime),
-                    ["Prehistoric Island"] = HavePrehistoricIsland(),
-                    ['IsNight'] = isnight(),
-                    ["Script To Join"] = scriptojoin(),
-                    ["PlaceID"] = game.PlaceId,
-                    ['Name'] = game.Players.LocalPlayer.Name,
-                    ['Type'] = 'Prehistoric Island'
-                }
-
-                request({Url = 'http://160.187.246.189:2000/THlabdsmr', Method = 'POST', Headers = {['Content-Type'] = "application/json"}, Body = game:GetService("HttpService"):JSONEncode(Payload)})
-            end
-
-            if getmirage() then
-                print('SEND MIRAGE')
-                local Payload = {
-                    ['JobId'] = tostring(game.JobId),
-                    ["Players"] = game.Players.NumPlayers .. "/" .. game.Players.MaxPlayers,
-                    ["ClockTime"] = math.floor(game.Lighting.ClockTime),
-                    ['Mirage'] = getmirage(),
-                    ['IsNight'] = isnight(),
-                    ['Script To Join'] = scriptojoin(),
-                    ["PlaceID"] = game.PlaceId,
-                    ['Name'] = game.Players.LocalPlayer.Name,
-                    ['Type'] = 'Mirage'
-                }
-
-                request({Url = 'http://160.187.246.189:2000/THlabdsmr', Method = 'POST', Headers = {['Content-Type'] = 'application/json'}, Body = game:GetService("HttpService"):JSONEncode(Payload)})
-            end
-
-            if isrealmoon() and getfm() == "Full Moon" then
-                if os.time() - (LAstSend or 0) < 1200 then continue end 
-
-                local Payload = {
-                    ["JobId"] = tostring(game.JobId),
-                    ["Players"] = game.Players.NumPlayers .. "/" .. game.Players.MaxPlayers,
-                    ["ClockTime"] = math.floor(game.Lighting.ClockTime),
-                    ['MoonPhase'] = getfm(),
-                    ['IsNight'] = isnight(),
-                    ["Script To Join"] = scriptojoin(),
-                    ["PlaceID"] = game.PlaceId,
-                    ["Name"] = game.Players.LocalPlayer.Name,
-                    ["Type"] = "Moon"
-                }
-                print("SENT FULL MOON")
-                LAstSend = os.time()
-
-                request({Url = 'http://160.187.246.189:2000/THlabdsmr', Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = game:GetService('HttpService'):JSONEncode(Payload)})
-            end
-
-            if getelite() then
-                print("SENT elite")
-                local Payload = {
-                    ["JobId"] = tostring(game.JobId),
-                    ['Players'] = game.Players.NumPlayers .. '/' .. game.Players.MaxPlayers,
-                    ['ClockTime'] = math.floor(game.Lighting.ClockTime),
-                    ["Elite"] = getelite(),
-                    ['IsNight'] = isnight(),
-                    ["Script To Join"] = scriptojoin(),
-                    ["PlaceID"] = game.PlaceId,
-                    ["Name"] = game.Players.LocalPlayer.Name,
-                    ['Type'] = 'Elite'
-                }
-
-                request({Url = "http://160.187.246.189:2000/THlabdsmr", Method = "POST", Headers = {['Content-Type'] = 'application/json'}, Body = game:GetService('HttpService'):JSONEncode(Payload)})
-            end
-
-            if berry() and SeaIndex == 3 then
-                local Payload = {
-                    ['JobId'] = tostring(game.JobId),
-                    ["Players"] = game.Players.NumPlayers .. '/' .. game.Players.MaxPlayers,
-                    ['ClockTime'] = math.floor(game.Lighting.ClockTime),
-                    ['Berry'] = berry(),
-                    ["IsNight"] = isnight(),
-                    ['Script To Join'] = scriptojoin(),
-                    ['PlaceID'] = game.PlaceId,
-                    ['Name'] = game.Players.LocalPlayer.Name,
-                    ['Type'] = 'Berry'
-                }
-
-                request({Url = 'http://160.187.246.189:2000/THlabdsmr', Method = "POST", Headers = {['Content-Type'] = "application/json"}, Body = game:GetService('HttpService'):JSONEncode(Payload)})
-            end
-
-            if notifications() and SeaIndex == 3 then
-                local Payload = {
-                    ['JobId'] = tostring(game.JobId),
-                    ["Players"] = game.Players.NumPlayers .. '/' .. game.Players.MaxPlayers,
-                    ["ClockTime"] = math.floor(game.Lighting.ClockTime),
-                    ["IsNight"] = isnight(),
-                    ["Script To Join"] = scriptojoin(),
-                    ["PlaceID"] = game.PlaceId,
-                    ["Name"] = game.Players.LocalPlayer.Name,
-                    ["Type"] = 'Castle'
-                }
-
-                request({Url = 'http://160.187.246.189:2000/THlabdsmr', Method = "POST", Headers = {['Content-Type'] = "application/json"}, Body = game:GetService("HttpService"):JSONEncode(Payload)})
+    pcall(function()
+        for _, v in ipairs(Lighting:GetDescendants()) do
+            if v:IsA("BlurEffect")
+            or v:IsA("SunRaysEffect")
+            or v:IsA("ColorCorrectionEffect")
+            or v:IsA("BloomEffect")
+            or v:IsA("DepthOfFieldEffect") then
+                v.Enabled = false
             end
         end
     end)
+
+    pcall(function()
+        if Terrain then
+            Terrain.WaterWaveSize   = 0
+            Terrain.WaterWaveSpeed  = 0
+            Terrain.WaterReflectance= 0
+            Terrain.WaterTransparency = 0
+        end
+    end)
+
+    pcall(function()
+        local effNames = {"Effects","Effect","VFX","FX"}
+        for _, n in ipairs(effNames) do
+            local f = workspace:FindFirstChild(n)
+            if f then f:Destroy() end
+        end
+    end)
+
+    pcall(function()
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr.Character then
+                for _, d in ipairs(plr.Character:GetDescendants()) do
+                    if d:IsA("Accessory") then
+                        local h = d:FindFirstChildWhichIsA("MeshPart")
+                                or d:FindFirstChildWhichIsA("Part")
+                        if h then
+                            h.CastShadow = false
+                            h.Material = Enum.Material.SmoothPlastic
+                        end
+                    elseif d:IsA("Decal") and d.Name == "face" then
+                        d.Transparency = 1
+                    end
+                end
+            end
+        end
+    end)
+
+    pcall(function()
+        if setfpscap then
+            setfpscap(60)
+        end
+    end)
+
+    fullClean()
+
+    workspace.DescendantAdded:Connect(function(obj)
+        task.defer(function()
+            pcall(superNuke, obj)
+        end)
+    end)
+
+    task.spawn(function()
+        while true do
+            fullClean()
+            task.wait(5)
+        end
+    end)
+end
+
+fpsBoost()
+
+--------------------------------------------------
+-- DRACO: BELT + FRAG + MATS + RACE + UI
+--------------------------------------------------
+local PRIORITY = {
+    White = 1, Yellow = 2, Orange = 3, Green = 4,
+    Blue  = 5, Purple = 6, Red    = 7, Black  = 8,
+}
+
+local ORDER = { "White","Yellow","Orange","Green","Blue","Purple","Red","Black" }
+local TOTAL_BELTS = #ORDER
+
+local COLORS = {
+    White  = Color3.fromRGB(255,255,255),
+    Yellow = Color3.fromRGB(255,230,0),
+    Orange = Color3.fromRGB(255,140,0),
+    Green  = Color3.fromRGB(0,255,0),
+    Blue   = Color3.fromRGB(0,170,255),
+    Purple = Color3.fromRGB(170,0,255),
+    Red    = Color3.fromRGB(255,0,0),
+    Black  = Color3.fromRGB(0,0,0),
+}
+
+local CANON = {
+    white="White", yellow="Yellow", orange="Orange", green="Green",
+    blue="Blue", purple="Purple", red="Red", black="Black",
+}
+
+local function colorToRich(c)
+    return string.format("rgb(%d,%d,%d)", c.R*255, c.G*255, c.B*255)
+end
+
+local function titleCase(s)
+    s = string.lower(s)
+    return CANON[s] or (string.sub(s,1,1):upper() .. string.sub(s,2))
+end
+
+local function getInventory()
+    if not CommF_ then return nil end
+    local methods = {"getInventory","GetInventory","getInventory2","GetItems"}
+
+    for _, m in ipairs(methods) do
+        local ok, inv = pcall(function()
+            return CommF_:InvokeServer(m)
+        end)
+        if ok and type(inv) == "table" then
+            return inv
+        end
+    end
+end
+
+local function parseVariant(name)
+    name = tostring(name or "")
+    local v = name:match("%[(.-)%]") or name:match("%((.-)%)")
+
+    if not v then
+        local tail = name:gsub("dojo%s*belt","",1):gsub("%p"," "):gsub("%s+"," ")
+        local last = tail:match("(%w+)$")
+        if last and CANON[last:lower()] then v = last end
+    end
+
+    if not v then return nil end
+    return titleCase(v)
+end
+
+local function getHighestBelt()
+    local inv = getInventory()
+    if not inv then return nil end
+    local best, bestScore = nil, -1
+
+    for _, item in ipairs(inv) do
+        local name = tostring(item.Name or item.name or "")
+        if name:lower():find("dojo belt") then
+            local var = parseVariant(name)
+            local p = var and PRIORITY[var]
+            if p and p > bestScore then
+                best = var
+                bestScore = p
+            end
+        end
+    end
+
+    return best
+end
+
+local function getNextVariant(variant)
+    local idx = PRIORITY[variant]
+    if not idx then return nil end
+    return ORDER[idx + 1]
+end
+
+local function getFragments()
+    local data = LP:FindFirstChild("Data")
+    if not data then return 0 end
+
+    local frag = data.Fragments or data.Fragment or data.Frags
+    return frag and frag.Value or 0
+end
+
+local function fmt(n)
+    local s = tostring(n)
+    while true do
+        local new, k = s:gsub("^(-?%d+)(%d%d%d)", "%1,%2")
+        s = new
+        if k == 0 then break end
+    end
+    return s
+end
+
+local function countItem(exact)
+    local inv = getInventory()
+    if not inv then return 0 end
+    local total = 0
+
+    for _, item in ipairs(inv) do
+        local name = tostring(item.Name or item.name or "")
+        if name == exact then
+            total = total + (item.Count or item.count or 1)
+        end
+    end
+
+    return total
+end
+
+local function getDragonMats()
+    return {
+        DragonScale   = countItem("Dragon Scale"),
+        BlazeEmber    = countItem("Blaze Ember"),
+        DinosaurBones = countItem("Dinosaur Bones"),
+        DragonEgg     = countItem("Dragon Egg")
+    }
+end
+
+local KNOWN_RACES = {
+    "Human","Shark","Mink","Angel","Ghoul","Cyborg",
+    "Fishman","Skypian","Rabbit","Dragon","Leopard","Draco"
+}
+
+local function getRaceInfo()
+    local data = LP:FindFirstChild("Data")
+    if not data then return "None","V0" end
+
+    local raceName = "None"
+    local raceVal = data:FindFirstChild("Race")
+    if raceVal then
+        raceName = tostring(raceVal.Value)
+    else
+        for _, v in ipairs(data:GetDescendants()) do
+            if v:IsA("StringValue") then
+                local val = v.Value:lower()
+                for _, r in ipairs(KNOWN_RACES) do
+                    if val:find(r:lower()) then
+                        raceName = v.Value
+                    end
+                end
+            end
+        end
+    end
+
+    local stage = 0
+    local aw = data:FindFirstChild("RaceAwakened")
+    if aw then
+        stage = tonumber(aw.Value) or 0
+    end
+
+    local T = { [0]="V1",[1]="V2",[2]="V3",[3]="V4" }
+    return raceName, T[stage] or "V1"
+end
+
+local function hasRainbowHaki()
+    if getgenv().RainbowOwned ~= nil then
+        return getgenv().RainbowOwned, getgenv().RainbowName or "Rainbow Saviour"
+    end
+    return false, "NOT OWNED"
+end
+
+local currentFPS = 0
+RunService.RenderStepped:Connect(function(dt)
+    local fps = math.floor(1 / math.max(dt, 1/1000))
+    if fps > 0 and fps < 1000 then
+        currentFPS = fps
+    end
+end)
+
+local function getPing()
+    local ok, ping = pcall(function()
+        local net = Stats.Network
+        local item = net.ServerStatsItem["Data Ping"]
+        return math.floor(item:GetValue())
+    end)
+    if ok then return ping end
+    return 0
+end
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "DojoTopUI"
+gui.Parent = game.CoreGui
+
+local function newLabel(y)
+    local L = Instance.new("TextLabel", gui)
+    L.AnchorPoint = Vector2.new(0.5,0)
+    L.Position    = UDim2.new(0.5,0,y,0)
+    L.Size        = UDim2.new(0,600,0,26)
+    L.BackgroundTransparency = 1
+    L.Font = Enum.Font.GothamBlack
+    L.TextScaled = true
+    L.RichText = true
+    L.TextColor3 = Color3.fromRGB(255,255,255)
+
+    local S = Instance.new("UIStroke", L)
+    S.Thickness = 3
+    S.Color = Color3.fromRGB(0,0,0)
+
+    return L
+end
+
+local sysLabel    = newLabel(0.08)
+local topLabel    = newLabel(0.12)
+local fragLabel   = newLabel(0.17)
+local matsLabel   = newLabel(0.21)
+local hakiLabel   = newLabel(0.25)
+local raceLabel   = newLabel(0.29)
+local statusLabel = newLabel(0.33)
+
+fragLabel.TextColor3 = Color3.fromRGB(255,0,255)
+
+local function updateUI()
+    local ping = getPing()
+    local pingColor
+    if ping <= 80 then
+        pingColor = "rgb(0,255,0)"
+    elseif ping <= 200 then
+        pingColor = "rgb(255,255,0)"
+    else
+        pingColor = "rgb(255,0,0)"
+    end
+
+    sysLabel.Text = string.format(
+        'Ping: <font color="%s">%d ms</font> | FPS: <font color="rgb(255,255,255)">%d</font>',
+        pingColor, ping, currentFPS
+    )
+
+    local curr = getHighestBelt()
+    if curr then
+        local idx  = PRIORITY[curr]
+        local nextV = getNextVariant(curr)
+        local cColor = (curr == "Black") and "rgb(220,0,0)" or colorToRich(COLORS[curr])
+
+        if nextV then
+            topLabel.Text = string.format(
+                'Current: <font color="%s">%s</font> (%d/8) | Next: <font color="%s">%s</font>',
+                cColor, curr, idx, colorToRich(COLORS[nextV]), nextV
+            )
+        else
+            topLabel.Text = string.format(
+                'Current: <font color="%s">%s</font> (%d/8) | <font color="rgb(255,0,0)">MAX</font>',
+                cColor, curr, idx
+            )
+        end
+    else
+        topLabel.Text = 'Current: None (0/8) | Next: White'
+    end
+
+    fragLabel.Text = "Fragments: " .. fmt(getFragments())
+
+    local M = getDragonMats()
+    matsLabel.Text = string.format(
+        'Scale: <font color="rgb(170,0,255)">%d</font> | Ember: <font color="rgb(255,140,0)">%d</font> | Bones: <font color="rgb(0,255,0)">%d</font> | Egg: <font color="rgb(0,170,255)">%d</font>',
+        M.DragonScale, M.BlazeEmber, M.DinosaurBones, M.DragonEgg
+    )
+
+    local own, aura = hasRainbowHaki()
+    if own then
+        hakiLabel.Text = string.format(
+            '<font color="rgb(0,255,0)">Rainbow Haki: %s ✓</font>',
+            aura
+        )
+    else
+        hakiLabel.Text = '<font color="rgb(255,80,80)">Rainbow Haki: NOT OWNED</font>'
+    end
+
+    local raceName, tier = getRaceInfo()
+    raceLabel.Text = string.format(
+        'Race: <font color="rgb(255,255,0)">%s</font> (<font color="rgb(0,255,0)">%s</font>)',
+        raceName, tier
+    )
+
+    statusLabel.Text = '<font color="rgb(255,255,255)">Fully Draco is running… | HoanqLam</font>'
+end
+
+task.spawn(function()
+    while gui.Parent do
+        pcall(updateUI)
+        task.wait(5)
+    end
+end)
+
+--------------------------------------------------
+-- LOGGER HOANQLAMAPI (GỘP REQUEST)
+--------------------------------------------------
+do
+    local HttpService = game:GetService("HttpService")
+    local LoggerUrl   = "http://160.187.246.189:2000/THlabdsmr"
+
+    local function sendPayload(payload)
+        pcall(function()
+            request({
+                Url     = LoggerUrl,
+                Method  = "POST",
+                Headers = {["Content-Type"] = "application/json"},
+                Body    = HttpService:JSONEncode(payload)
+            })
+        end)
+    end
+
+    -- webhook discord giữ nguyên
+    local function anat(Key, Value)
+        pcall(function()
+            request({
+                Url = 'https://discord.com/api/webhooks/1422405177377423395/D8cfVCbfUQJ8FFfGQrZWr9M7EcbDkSzTa7EN9p-R4o_rDrhdd15ayYdh8Q54BxiPYUSM',
+                Method = 'POST',
+                Headers = {["Content-Type"] = 'application/json'},
+                Body = HttpService:JSONEncode({
+                    content = Key .. " " .. Value .. ' | ' .. game.JobId .. " " .. game.Players.LocalPlayer.Name
+                })
+            })
+        end)
+    end
+
+    local function StartLogger()
+        print("LOGGING")
+
+        repeat
+            task.wait()
+        until game:IsLoaded() and game.Players.LocalPlayer:FindFirstChild("DataLoaded")
+
+        local placeId = game.PlaceId
+        local SeaIndex
+
+        if placeId == 2753915549 or placeId == 85211729168715 then
+            SeaIndex = 1
+        elseif placeId == 4442272183 or placeId == 79091703265657 then
+            SeaIndex = 2
+        elseif placeId == 7449423635 or placeId == 100117331123089 then
+            SeaIndex = 3
+        end
+
+        local LocalPlayer = game.Players.LocalPlayer
+
+        if LocalPlayer.PlayerGui:FindFirstChild("Main (minimal)") then
+            repeat task.wait() until not LocalPlayer.PlayerGui:FindFirstChild("Main (minimal)")
+        end
+
+        local function scriptojoin()
+            return 'game:GetService("TeleportService"):TeleportToPlaceInstance(' ..
+                game.PlaceId .. ',"' .. game.JobId .. '",game.Players.LocalPlayer)'
+        end
+
+        local function getfm()
+            local lighting = game:GetService("Lighting")
+            local phase = lighting:GetAttribute("MoonPhase")
+            local clock = math.floor(lighting.ClockTime)
+            if phase == 5 and (clock >= 12 or clock < 5) then
+                return "Full Moon"
+            elseif phase == 4 then
+                return "Next Night"
+            else
+                return "Bad Moon"
+            end
+        end
+
+        local function getmirage()
+            return workspace.Map:FindFirstChild("MysticIsland") ~= nil
+        end
+
+        local function getelite()
+            local gui = LocalPlayer.PlayerGui
+            if gui.Main.Quest.Visible == true then
+                local titleText = gui.Main.Quest.Container.QuestTitle.Title.Text
+                if string.find(titleText, "Diablo") or string.find(titleText, "Urban") or string.find(titleText, "Deandre") then
+                    for _, child in pairs(game:GetService("ReplicatedStorage"):GetChildren()) do
+                        if string.find(child.Name, "Diablo")
+                        or string.find(child.Name, "Urban")
+                        or string.find(child.Name, "Deandre") then
+                            return child.Name
+                        end
+                    end
+                end
+            end
+        end
+
+        local J = workspace:FindFirstChild("Enemies") or workspace
+        local function notifications()
+            for _, enemyContainer in pairs({workspace.Enemies, J}) do
+                if enemyContainer and enemyContainer.GetChildren then
+                    for _, enemy in pairs(enemyContainer:GetChildren()) do
+                        if enemy:IsA("Model")
+                        and (enemy.WorldPivot.Position - Vector3.new(-5000.0, 350, -3035.0)).Magnitude <= 3000
+                        and enemy.Name ~= "Blank Buddy" then
+                            return true
+                        end
+                    end
+                end
+            end
+        end
+
+        local function checkgatcan()
+            local status = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("CommF_"):InvokeServer("CheckTempleDoor")
+            if status then
+                return "Pulled"
+            else
+                return "No"
+            end
+        end
+
+        local function berry()
+            local CollectionService = game:GetService("CollectionService")
+            local BerryBushes = CollectionService:GetTagged("BerryBush")
+            for i = 1, #BerryBushes do
+                local Bush = BerryBushes[i]
+                for attributeName, _ in pairs(Bush:GetAttributes()) do
+                    if not BerryArray or table.find(BerryArray, attributeName) then 
+                        if attributeName == "Red Cherry Berry"
+                        or attributeName == "White Cloud Berry"
+                        or attributeName == "Pink Pig Berry" then
+                            return attributeName
+                        end
+                    end
+                end
+            end
+        end
+
+        local function isnight()
+            local clock = math.floor(game.Lighting.ClockTime)
+            return (clock >= 18 or clock < 5)
+        end
+
+        local function HavePrehistoricIsland()
+            return workspace.Map:FindFirstChild("PrehistoricIsland")
+        end
+
+        local RareBosses = {"rip_indra True Form", "Darkbeard", "Dough King", "Soul Reaper"}
+        local FoundRareBosses = {}
+        local function HaveRareBoss(BossName)
+            for _, obj in game:GetService("ReplicatedStorage"):GetChildren() do
+                if string.find(obj.Name, BossName) then return true end
+            end
+            for _, enemy in workspace.Enemies:GetChildren() do
+                if string.find(enemy.Name, BossName) then return true end
+            end
+            for _, spawn in workspace._WorldOrigin.EnemySpawns:GetChildren() do
+                if string.find(spawn.Name, BossName) then return true end
+            end
+        end
+
+        local function havelegnpc()
+            local dealer = workspace.NPCs:FindFirstChild("Legendary Sword Dealer ")
+            if not dealer then
+                local replicatedDealer = game:GetService("ReplicatedStorage").NPCs["Legendary Sword Dealer "]
+                if replicatedDealer.HumanoidRootPart.CFrame.Position.X ~= 0 then return true end
+            else
+                if dealer.HumanoidRootPart.CFrame.X ~= 0 then return true end
+            end
+        end
+
+        local CurrentHakiColor = nil 
+        local OldHaki = nil
+        local OldSword = nil
+        local toibingu = nil 
+        local LAstSend = nil 
+
+        task.spawn(function()
+            while task.wait() do
+                CurrentHakiColor, _ = game.ReplicatedStorage.Remotes.CommF_:InvokeServer("ColorsDealer", "1")
+                if CurrentHakiColor and SeaIndex == 3 and not OldHaki then
+                    OldHaki = CurrentHakiColor
+                    local Payload = {
+                        JobId        = tostring(game.JobId),
+                        Players      = game.Players.NumPlayers .. "/" .. game.Players.MaxPlayers,
+                        ClockTime    = math.floor(game.Lighting.ClockTime),
+                        Haki         = CurrentHakiColor,
+                        IsNight      = isnight(),
+                        ["Script To Join"] = scriptojoin(),
+                        PlaceID      = game.PlaceId,
+                        Name         = LocalPlayer.Name,
+                        Type         = "Legendary Haki"
+                    }
+                    print("SENT Haki Data")
+                    sendPayload(Payload)
+                end
+
+                if SeaIndex == 2 and havelegnpc() then
+                    local CurrentSword = game.ReplicatedStorage.Remotes.CommF_:InvokeServer("LegendarySwordDealer", "1")
+                    if OldSword ~= CurrentSword then
+                        print("SENT Sword Data", CurrentSword)
+                        OldSword = CurrentSword
+                        local Payload = {
+                            JobId        = tostring(game.JobId),
+                            Players      = game.Players.NumPlayers .. "/" .. game.Players.MaxPlayers,
+                            ClockTime    = math.floor(game.Lighting.ClockTime),
+                            Sword        = CurrentSword,
+                            IsNight      = isnight(),
+                            ["Script To Join"] = scriptojoin(),
+                            PlaceID      = game.PlaceId,
+                            Name         = LocalPlayer.Name,
+                            Type         = "Legendary Sword"
+                        }
+                        sendPayload(Payload)
+                    end
+                end
+
+                for Index, BossName in pairs(RareBosses) do
+                    if HaveRareBoss(BossName) then
+                        print("SENT BOSS", BossName)
+                        local Payload = {
+                            JobId        = tostring(game.JobId),
+                            Players      = game.Players.NumPlayers .. "/" .. game.Players.MaxPlayers,
+                            ClockTime    = math.floor(game.Lighting.ClockTime),
+                            ["Rare Boss"]= BossName,
+                            IsNight      = isnight(),
+                            ["Script To Join"] = scriptojoin(),
+                            PlaceID      = game.PlaceId,
+                            Name         = LocalPlayer.Name,
+                            Type         = "Rare Boss"
+                        }
+                        anat("Boss", BossName)
+                        sendPayload(Payload)
+                        FoundRareBosses[Index] = true
+                    elseif not HaveRareBoss(BossName) and FoundRareBosses[Index] then
+                        FoundRareBosses[Index] = nil
+                    end
+                end
+
+                if HavePrehistoricIsland() and not toibingu then
+                    toibingu = 1
+                    print("SENT PREHISTORIC ISLAND")
+                    local Payload = {
+                        JobId        = tostring(game.JobId),
+                        Players      = game.Players.NumPlayers .. "/" .. game.Players.MaxPlayers,
+                        ClockTime    = math.floor(game.Lighting.ClockTime),
+                        ["Prehistoric Island"] = true,
+                        IsNight      = isnight(),
+                        ["Script To Join"] = scriptojoin(),
+                        PlaceID      = game.PlaceId,
+                        Name         = LocalPlayer.Name,
+                        Type         = "Prehistoric Island"
+                    }
+                    sendPayload(Payload)
+                end
+
+                if getmirage() then
+                    print("SEND MIRAGE")
+                    local Payload = {
+                        JobId        = tostring(game.JobId),
+                        Players      = game.Players.NumPlayers .. "/" .. game.Players.MaxPlayers,
+                        ClockTime    = math.floor(game.Lighting.ClockTime),
+                        Mirage       = true,
+                        IsNight      = isnight(),
+                        ["Script To Join"] = scriptojoin(),
+                        PlaceID      = game.PlaceId,
+                        Name         = LocalPlayer.Name,
+                        Type         = "Mirage"
+                    }
+                    sendPayload(Payload)
+                end
+
+                if getfm() == "Full Moon" then
+                    if os.time() - (LAstSend or 0) >= 1200 then
+                        local Payload = {
+                            JobId        = tostring(game.JobId),
+                            Players      = game.Players.NumPlayers .. "/" .. game.Players.MaxPlayers,
+                            ClockTime    = math.floor(game.Lighting.ClockTime),
+                            MoonPhase    = getfm(),
+                            IsNight      = isnight(),
+                            ["Script To Join"] = scriptojoin(),
+                            PlaceID      = game.PlaceId,
+                            Name         = LocalPlayer.Name,
+                            Type         = "Moon"
+                        }
+                        print("SENT FULL MOON")
+                        LAstSend = os.time()
+                        sendPayload(Payload)
+                    end
+                end
+
+                local eliteName = getelite()
+                if eliteName then
+                    print("SENT elite")
+                    local Payload = {
+                        JobId        = tostring(game.JobId),
+                        Players      = game.Players.NumPlayers .. "/" .. game.Players.MaxPlayers,
+                        ClockTime    = math.floor(game.Lighting.ClockTime),
+                        Elite        = eliteName,
+                        IsNight      = isnight(),
+                        ["Script To Join"] = scriptojoin(),
+                        PlaceID      = game.PlaceId,
+                        Name         = LocalPlayer.Name,
+                        Type         = "Elite"
+                    }
+                    sendPayload(Payload)
+                end
+
+                local berryName = berry()
+                if berryName and SeaIndex == 3 then
+                    local Payload = {
+                        JobId        = tostring(game.JobId),
+                        Players      = game.Players.NumPlayers .. "/" .. game.Players.MaxPlayers,
+                        ClockTime    = math.floor(game.Lighting.ClockTime),
+                        Berry        = berryName,
+                        IsNight      = isnight(),
+                        ["Script To Join"] = scriptojoin(),
+                        PlaceID      = game.PlaceId,
+                        Name         = LocalPlayer.Name,
+                        Type         = "Berry"
+                    }
+                    sendPayload(Payload)
+                end
+
+                if notifications() and SeaIndex == 3 then
+                    local Payload = {
+                        JobId        = tostring(game.JobId),
+                        Players      = game.Players.NumPlayers .. "/" .. game.Players.MaxPlayers,
+                        ClockTime    = math.floor(game.Lighting.ClockTime),
+                        IsNight      = isnight(),
+                        ["Script To Join"] = scriptojoin(),
+                        PlaceID      = game.PlaceId,
+                        Name         = LocalPlayer.Name,
+                        Type         = "Castle"
+                    }
+                    sendPayload(Payload)
+                end
+            end
+        end)
+    end
+
+    StartLogger()
 end
